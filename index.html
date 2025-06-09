@@ -30,10 +30,11 @@
       form.addEventListener('submit', async e => {
         e.preventDefault()
         msg.textContent = ''
+        msg.className = ''
 
-        const nameInput    = form.elements['friendName'].value.trim()
-        const handleInput  = form.elements['channelHandle'].value.trim()
-        const passwordInput= form.elements['formPassword'].value
+        const nameInput     = form.elements['friendName'].value.trim()
+        const handleInput   = form.elements['channelHandle'].value.trim()
+        const passwordInput = form.elements['formPassword'].value
 
         if (passwordInput !== FORM_PASSWORD) {
           msg.textContent = '❌ Incorrect password.'
@@ -84,4 +85,3 @@
   <p id="message"></p>
 </body>
 </html>
-

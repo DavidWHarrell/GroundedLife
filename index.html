@@ -1,1 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grounded Life Channel Submission</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    form { max-width: 400px; margin: auto; }
+    label { display: block; margin-top: 1rem; }
+    input, button { width: 100%; padding: 0.5rem; margin-top: 0.25rem; }
+    .error { color: #c00; }
+    .success { color: #080; }
+  </style>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+    // ── CONFIGURE THESE VALUES ──────────────────────────────────────────
+    const SUPABASE_URL      = 'https://bqpjljsjsssvjuztaupz.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxcGpsanNqc3Nzdmp1enRhdXB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkxMzA1MjEsImV4cCI6MjA2NDcwNjUyMX0.ORAisnmGr8xr5cAemyMmbGrNuKbcdTIAxit8KVN-YzI'
+    const FORM_PASSWORD     = 'YOUR_SHARED_PASSWORD_HERE'
+    // ────────────────────────────────────────────────────────────────────
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('channelForm')
+      const msg  = document.getElementById('message')
+
+      form.addEventListener('submit', async e => {
+        e.preventDefault()
+        msg.textContent = ''
+
+        const nameInput    = form.elements['friendName'].value.trim()
+        const handleInput  = form.elements['channelHandle'].value.trim()
+        const passwordInput= form.elements['formPassword'].value
+
+        if (passwordInput !== FORM_PASSWORD) {
+          msg.textContent = '❌ Incorrect password.'
+          msg.className = 'error'
+          return
+        }
+        if (!nameInput || !handleInput.startsWith('@')) {
+          msg.textContent = '❌ Enter a name and a handle like @ChannelName.'
+          msg.className = 'error'
+          return
+        }
+
+        // Insert into your 'channels' table
+        const { error } = await supabase
+          .from('channels')
+          .insert({ friend_name: nameInput, channel_handle: handleInput })
+
+        if (error) {
+          console.error(error)
+          msg.textContent = '❌ Submission failed. See console for details.'
+          msg.className = 'error'
+        } else {
+          msg.textContent = '✅ Submitted successfully!'
+          msg.className = 'success'
+          form.reset()
+        }
+      })
+    })
+  </script>
+</head>
+<body>
+  <h1>Grounded Life Channel Submission</h1>
+  <form id="channelForm">
+    <label>
+      Friend Name
+      <input name="friendName" type="text" placeholder="e.g. David and Sarah" required>
+    </label>
+    <label>
+      Channel Handle (<code>@channelname</code>)
+      <input name="channelHandle" type="text" placeholder="@YourChannel" required>
+    </label>
+    <label>
+      Form Password
+      <input name="formPassword" type="password" placeholder="Enter password" required>
+    </label>
+    <button type="submit">Submit</button>
+  </form>
+  <p id="message"></p>
+</body>
+</html>
 

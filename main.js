@@ -1,13 +1,23 @@
-// main.js
+ey// main.js
+//
+// Dashboard script for Grounded Life YouTube metrics.
+// ————————————————
+// 1) Include this file in dashboard.html with: <script type="module" src="main.js"></script>
+// 2) Make sure dashboard.html <canvas> and <table> elements match these IDs:
+//      - id="subsChart"
+//      - id="viewsChart"
+//      - table id="channelTable"
+// ————————————————
+
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-const SUPABASE_URL = 'https://bqpjljsjsssvjuztaupz.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxcGpsanNqc3Nzdmp1enRhdXB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1MDgzOTcsImV4cCI6MjA2NTA4NDM5N30.JSoiFcpKiYj_b5rapTl8jFIEDlTkSQGa85rpegivxKI';  // safe for browser use
+const SUPABASE_URL       = 'https://bqpjljsjsssvjuztaupz.supabase.co';
+const SUPABASE_ANON_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxcGpsanNqc3Nzdmp1enRhdXB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1MDgzOTcsImV4cCI6MjA2NTA4NDM5N30.JSoiFcpKiYj_b5rapTl8jFIEDlTkSQGa85rpegivxKI';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function loadData() {
-  // Fetch the latest snapshot for each channel
+  // 1) Fetch the most recent metrics row for each channel
   const { data, error } = await supabase
     .from('channel_metrics')
     .select(`
@@ -24,29 +34,43 @@ async function loadData() {
     .order('fetched_at', { ascending: false })
     .limit(1);
 
-  if (error) return console.error(error);
+  if (error) {
+    console.error('Supabase fetch error:', error);
+    return;
+  }
 
-  // Prepare arrays for charts
+  // 2) Build subscriber & view bar charts
   const labels = data.map(r => r.channels.channel_name);
-  const subs = data.map(r => r.subscribers);
-  const vs   = data.map(r => r.views);
+  const subs   = data.map(r => r.subscribers);
+  const views  = data.map(r => r.views);
 
-  // Subscribers bar chart
   new Chart(document.getElementById('subsChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ label: 'Subscribers', data: subs }] },
-    options:{ responsive:true, plugins:{ legend:{ display:false } } }
+    data: {
+      labels,
+      datasets: [{ label: 'Subscribers', data: subs }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } }
+    }
   });
 
-  // Views bar chart
   new Chart(document.getElementById('viewsChart'), {
     type: 'bar',
-    data: { labels, datasets:[{ label:'Views', data: vs }] },
-    options:{ responsive:true, plugins:{ legend:{ display:false } } }
+    data: {
+      labels,
+      datasets: [{ label: 'Views', data: views }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } }
+    }
   });
 
-  // Fill table
+  // 3) Populate the table
   const tbody = document.querySelector('#channelTable tbody');
+  tbody.innerHTML = ''; // clear any existing rows
   data.forEach(r => {
     const tr = document.createElement('tr');
     tr.innerHTML = `

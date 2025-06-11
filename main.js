@@ -1,4 +1,4 @@
-ey// main.js
+// main.js
 //
 // Dashboard script for Grounded Life YouTube metrics.
 // ————————————————

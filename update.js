@@ -1,186 +1,198 @@
-// update.js (DEBUG VERSION)
+// update.js
+//
+// Fetch and store YouTube channel metadata & daily metrics in Supabase.
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+// Prerequisites (in your GitHub Actions or local env):
+//   • SUPABASE_URL         = https://bqpjljsjsssvjuztaupz.supabase.co
+//   • SUPABASE_SERVICE_KEY = (your full service_role key)
+//   • YT_API_KEYS          = comma-separated list of valid YouTube Data API v3 keys
+//
+// Usage:
+//   npm install node-fetch@2 @supabase/supabase-js
+//   node update.js
+//
+
 import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
 
-// ─── CONFIG ────────────────────────────────────────────────────────────────
+////////////////////////////////////////////////////////////////////////////////
+// CONFIGURATION (via environment variables)
+
 const SUPABASE_URL         = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const YT_API_KEYS          = (process.env.YT_API_KEYS || '')
   .split(',')
   .map(k => k.trim())
-  .filter(k => k);
+  .filter(Boolean);
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('❌ Missing SUPABASE_URL or SUPABASE_SERVICE_KEY');
   process.exit(1);
 }
 if (!YT_API_KEYS.length) {
-  console.error('❌ Missing YT_API_KEYS');
+  console.error('❌ No YT_API_KEYS provided');
   process.exit(1);
 }
 
+// Create Supabase client (service role)
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false }
 });
+
+// Round-robin index for YouTube API keys
 let keyIndex = 0;
 
-// ─── DEBUG HELPER ──────────────────────────────────────────────────────────
-async function fetchWithKeysDebug(urlBuilder) {
+////////////////////////////////////////////////////////////////////////////////
+// Helper: rotate through keys until a request succeeds
+
+async function fetchWithKeys(urlBuilder) {
   const errors = [];
   for (let i = 0; i < YT_API_KEYS.length; i++) {
     const key = YT_API_KEYS[keyIndex % YT_API_KEYS.length];
     keyIndex++;
     const url = urlBuilder(key);
-    console.log(`\n🔑 [${i+1}/${YT_API_KEYS.length}] Trying key: ${key}`);
-    console.log(`📡 URL: ${url}`);
-
-    let res, text;
     try {
-      res = await fetch(url);
+      const res = await fetch(url);
+      const json = await res.json();
+      if (res.ok && !json.error) return json;
+      errors.push(json.error?.message || `HTTP ${res.status}`);
     } catch (e) {
-      console.error(`❌ Network fetch error: ${e.message}`);
-      errors.push(`Network error with key ${key}: ${e.message}`);
-      continue;
+      errors.push(e.message);
     }
-
-    console.log(`🔢 Status: ${res.status}`);
-    try {
-      text = await res.text();
-      console.log(`ℹ️ Body (first 500 chars):\n${text.slice(0, 500)}${text.length>500?'…':''}`);
-    } catch (e) {
-      console.error(`❌ Failed to read body: ${e.message}`);
-      errors.push(`Body read error with key ${key}: ${e.message}`);
-      continue;
-    }
-
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch (e) {
-      console.error(`❌ JSON parse error: ${e.message}`);
-      errors.push(`JSON parse error with key ${key}: ${e.message}`);
-      continue;
-    }
-
-    if (res.ok && !json.error) {
-      console.log(`✅ Key worked, returning JSON.`);
-      return json;
-    }
-
-    const msg = json.error?.message || `HTTP ${res.status}`;
-    console.warn(`⚠️ API returned error: ${msg}`);
-    errors.push(`API error with key ${key}: ${msg}`);
   }
-
-  throw new Error(`All keys failed:\n${errors.join('\n')}`);
+  throw new Error('All YouTube API keys failed:\n' + errors.join('\n'));
 }
 
-// ─── MAIN ─────────────────────────────────────────────────────────────────
+////////////////////////////////////////////////////////////////////////////////
+// Main updater
+
 async function main() {
-  const { data: channels, error } = await supabase
+  // 1) Load all channels metadata
+  const { data: channels, error: chanErr } = await supabase
     .from('channels')
-    .select('id,channel_handle');
-  if (error) throw error;
+    .select('id,channel_handle,override_id,thumbnail_url,created_at');
+  if (chanErr) throw chanErr;
   if (!channels.length) {
-    console.log('ℹ️ No channels to process.');
+    console.log('ℹ️ No channels to update');
     return;
   }
 
-  for (const { id: recordId, channel_handle } of channels) {
-    const raw = (channel_handle||'').trim();
-    if (!raw) {
-      console.warn(`⚠️ Skipping blank handle for record ${recordId}`);
+  const today = (new Date()).toDateString();
+
+  for (const ch of channels) {
+    const recordId = ch.id;
+    let { channel_handle, override_id } = ch;
+    let youtubeChannelId = override_id || null;
+
+    console.log(`\n▶ Processing record ${recordId}: ${channel_handle}`);
+
+    // 2) Normalize handle → full URL if needed
+    if (channel_handle.startsWith('@')) {
+      channel_handle = `https://www.youtube.com/${channel_handle}`;
+      await supabase
+        .from('channels')
+        .update({ channel_url: channel_handle })
+        .eq('id', recordId);
+    }
+
+    // 3) Extract or search for UC... ID
+    if (!youtubeChannelId) {
+      if (/\/channel\//.test(channel_handle)) {
+        youtubeChannelId = channel_handle.split('/channel/')[1].split(/[/?]/)[0];
+      } else {
+        const handle = channel_handle.split('@')[1]?.split(/[/?#]/)[0];
+        if (handle) {
+          const searchJson = await fetchWithKeys(key =>
+            `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel` +
+            `&q=${encodeURIComponent(handle)}&key=${key}`
+          );
+          youtubeChannelId = searchJson.items?.[0]?.snippet?.channelId || null;
+        }
+      }
+      if (youtubeChannelId) {
+        await supabase
+          .from('channels')
+          .update({ channel_id: youtubeChannelId })
+          .eq('id', recordId);
+      }
+    }
+    if (!youtubeChannelId) {
+      console.warn(`❌ No channel ID for record ${recordId}, skipping`);
       continue;
     }
-    console.log(`\n▶ Processing ${raw} (record ${recordId})`);
 
-    // STEP 1: Extract or search for UC… ID
-    let youtubeId = null;
-    if (/\/channel\//i.test(raw)) {
-      youtubeId = raw.split('/channel/')[1]?.split(/[^A-Za-z0-9_-]/)[0] || null;
-      console.log(`🔍 Detected direct URL → ID = ${youtubeId}`);
-    }
-    if (!youtubeId && raw.startsWith('@')) {
-      console.log(`🔍 Searching for handle ${raw}`);
-      try {
-        const searchJson = await fetchWithKeysDebug(key =>
-          `https://www.googleapis.com/youtube/v3/search?` +
-          `part=snippet&type=channel&maxResults=1` +
-          `&q=${encodeURIComponent(raw.slice(1))}` +
-          `&key=${key}`
-        );
-        youtubeId = searchJson.items?.[0]?.snippet?.channelId || null;
-        console.log(`   → Search result channelId = ${youtubeId}`);
-      } catch (e) {
-        console.error(`❌ Search failed for ${raw}: ${e.message}`);
+    // 4) Avoid re-fetching unchanged channels more than once per day
+    const { data: latestMetrics } = await supabase
+      .from('channel_metrics')
+      .select('fetched_at')
+      .eq('channel_id', recordId)
+      .order('fetched_at', { ascending: false })
+      .limit(1);
+    if (latestMetrics?.[0]?.fetched_at) {
+      const last = new Date(latestMetrics[0].fetched_at).toDateString();
+      if (last === today) {
+        console.log(`⏭ Already updated today, skipping ${recordId}`);
         continue;
       }
     }
-    if (!youtubeId) {
-      console.warn(`❌ Could not resolve channelId for ${raw}, skipping.`);
+
+    // 5) Fetch channel details (statistics & uploads playlist)
+    const channelJson = await fetchWithKeys(key =>
+      `https://www.googleapis.com/youtube/v3/channels?` +
+      `part=snippet,contentDetails,statistics` +
+      `&id=${youtubeChannelId}&key=${key}`
+    );
+    const info = channelJson.items?.[0];
+    if (!info) {
+      console.warn(`❌ No channel info returned for ${youtubeChannelId}`);
       continue;
     }
 
-    // STEP 2: Fetch stats + uploads playlist
-    let stats, uploads;
-    try {
-      console.log(`📡 Fetching stats for ${youtubeId}`);
-      const chanJson = await fetchWithKeysDebug(key =>
-        `https://www.googleapis.com/youtube/v3/channels?` +
-        `part=statistics,contentDetails` +
-        `&id=${youtubeId}` +
-        `&key=${key}`
-      );
-      const item = chanJson.items?.[0];
-      if (!item) throw new Error('No channel data returned');
-      stats = item.statistics;
-      uploads = item.contentDetails.relatedPlaylists.uploads;
-      console.log(`   → stats=${JSON.stringify(stats)} uploads=${uploads}`);
-    } catch (e) {
-      console.error(`❌ Stats fetch failed for ${raw}: ${e.message}`);
-      continue;
-    }
+    const snippet = info.snippet;
+    const stats   = info.statistics;
+    const uploads = info.contentDetails.relatedPlaylists.uploads;
 
-    // STEP 3: Fetch last video date
+    // 6) Update channel metadata (name, thumbnail)
+    await supabase
+      .from('channels')
+      .update({
+        channel_name:  snippet.title,
+        thumbnail_url: snippet.thumbnails.default.url
+      })
+      .eq('id', recordId);
+
+    // 7) Fetch last video date
     let lastVideoAt = null;
     if (uploads) {
-      try {
-        console.log(`📡 Fetching last video date for playlist ${uploads}`);
-        const uplJson = await fetchWithKeysDebug(key =>
-          `https://www.googleapis.com/youtube/v3/playlistItems?` +
-          `part=snippet&maxResults=1&playlistId=${uploads}` +
-          `&key=${key}`
-        );
-        lastVideoAt = uplJson.items?.[0]?.snippet?.publishedAt || null;
-        console.log(`   → lastVideoAt=${lastVideoAt}`);
-      } catch (e) {
-        console.warn(`⚠️ Could not fetch last video date: ${e.message}`);
-      }
+      const uplJson = await fetchWithKeys(key =>
+        `https://www.googleapis.com/youtube/v3/playlistItems?` +
+        `part=snippet&maxResults=1&playlistId=${uploads}&key=${key}`
+      );
+      lastVideoAt = uplJson.items?.[0]?.snippet.publishedAt || null;
     }
 
-    // STEP 4: Insert into channel_metrics
-    try {
-      console.log(`💾 Inserting metric row for ${raw}`);
-      const { error: insErr } = await supabase
-        .from('channel_metrics')
-        .insert({
-          channel_id:    recordId,
-          videos:        Number(stats.videoCount)      || 0,
-          subscribers:   Number(stats.subscriberCount) || 0,
-          views:         Number(stats.viewCount)       || 0,
-          last_video_at: lastVideoAt,
-          fetched_at:    new Date().toISOString()
-        });
-      if (insErr) throw insErr;
-      console.log(`✅ Insert succeeded for ${raw}`);
-    } catch (e) {
-      console.error(`❌ Insert failed for ${raw}: ${e.message}`);
+    // 8) Insert today's metrics
+    const { error: insErr } = await supabase
+      .from('channel_metrics')
+      .insert({
+        channel_id:    recordId,
+        videos:        Number(stats.videoCount)      || 0,
+        subscribers:   Number(stats.subscriberCount) || 0,
+        views:         Number(stats.viewCount)       || 0,
+        last_video_at: lastVideoAt,
+        fetched_at:    new Date().toISOString()
+      });
+    if (insErr) {
+      console.error(`❌ Insert failed for ${recordId}:`, insErr);
+    } else {
+      console.log(`✅ Metrics recorded for ${recordId}`);
     }
   }
+
   console.log('\n✅ update.js completed');
 }
 
 main().catch(err => {
-  console.error('\n❌ Fatal error in update.js:', err.message);
+  console.error('\n❌ Fatal error:', err.message);
   process.exit(1);
 });

@@ -1,0 +1,28 @@
+<!-- dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Grounded Life YouTube Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" defer src="main.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    canvas { max-width: 800px; margin-bottom: 2rem; }
+    table { border-collapse: collapse; width: 100%; margin-top: 2rem; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: #f4f4f4; }
+  </style>
+</head>
+<body>
+  <h1>Grounded Life Community YouTube Dashboard</h1>
+  <canvas id="subsChart" height="100"></canvas>
+  <canvas id="viewsChart" height="100"></canvas>
+  <table id="channelTable">
+    <thead>
+      <tr><th>Friend</th><th>Channel</th><th>Subscribers</th><th>Views</th><th>Last Video</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</body>
+</html>

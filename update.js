@@ -2,158 +2,158 @@
 import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
 
-////////////////////////////////////////////////////////////////////////////////
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL        = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY= process.env.SUPABASE_SERVICE_KEY;
-const YT_API_KEYS         = (process.env.YT_API_KEYS || '').split(',');
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+// comma-separated in env, e.g.
+//   YT_API_KEYS="KEY1,KEY2,KEY3,KEY4"
+const YT_API_KEYS = (process.env.YT_API_KEYS || '').split(',').map(k => k.trim());
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || YT_API_KEYS.length===0) {
-  console.error('⚠️  Missing one of SUPABASE_URL, SUPABASE_SERVICE_KEY or YT_API_KEYS');
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || YT_API_KEYS.length === 0) {
+  console.error('❌ Missing one of SUPABASE_URL, SUPABASE_SERVICE_KEY or YT_API_KEYS');
   process.exit(1);
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-// simple sleep helper
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-////////////////////////////////////////////////////////////////////////////////
-// ─── YouTube fetch helper ────────────────────────────────────────────────────
-async function fetchWithKeys(urlBuilder) {
-  let lastError;
-  for (let key of YT_API_KEYS) {
+async function fetchWithRotation(urlBuilder) {
+  for (let i = 0; i < YT_API_KEYS.length; i++) {
+    const key = YT_API_KEYS[i];
+    const url = urlBuilder(key);
     try {
-      const url = urlBuilder(key);
       const res = await fetch(url);
-      if (!res.ok) {
-        const txt = await res.text();
-        lastError = new Error(`HTTP ${res.status}: ${txt}`);
-        continue;
-      }
-      return await res.json();
+      if (res.status === 200) return await res.json();
+      // treat 4xx/5xx as a failure to rotate
+      console.warn(`⚠️ YouTube API returned ${res.status} for key[${i}], will try next`);
     } catch (e) {
-      lastError = e;
-      continue;
+      console.warn(`⚠️ YouTube fetch error with key[${i}]:`, e.message);
     }
   }
-  throw lastError;
+  throw new Error('⚠️ All YouTube API keys exhausted or failing');
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// ─── MAIN ────────────────────────────────────────────────────────────────────
+function extractChannelIdFromUrl(url) {
+  url = (url||'').trim();
+  if (url.includes('/channel/')) {
+    return url.split('/channel/')[1].split(/[?\/#]/)[0];
+  }
+  // handle @handles or custom URLs
+  const m = url.match(/@([A-Za-z0-9_]+)/);
+  if (m) return { handle: m[1] };
+  return null;
+}
+
+async function resolveHandleToId(handle) {
+  const data = await fetchWithRotation(key =>
+    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${handle}&key=${key}`
+  );
+  if (data.items && data.items[0]?.snippet?.channelId) {
+    return data.items[0].snippet.channelId;
+  }
+  return null;
+}
+
 async function main() {
-  // 1) load all channels
-  const { data: channels, error: chErr } = await supabase
+  // 1) Load all channels
+  const { data: rows, error: readErr } = await supabase
     .from('channels')
-    .select('id,channel_handle,override_id');
-  if (chErr) {
-    console.error('❌ Supabase read channels failed:', chErr);
+    .select('id,channel_handle');
+  if (readErr) {
+    console.error('❌ Supabase read channels failed:', readErr);
     process.exit(1);
   }
 
-  for (let ch of channels) {
-    const { id, channel_handle, override_id } = ch;
-    const raw = (channel_handle||'').trim();
-    // normalize URL
-    let channelUrl = raw.startsWith('@')
-      ? `https://www.youtube.com/${raw}`
-      : raw;
+  for (const row of rows) {
+    const { id, channel_handle } = row;
+    let channelId = null;
 
-    // 2) derive channelId
-    let channelId = (override_id||'').startsWith('UC')
-      ? override_id
-      : '';
+    // 2) extract or resolve
+    const extracted = extractChannelIdFromUrl(channel_handle);
+    if (typeof extracted === 'string') {
+      channelId = extracted;
+    } else if (extracted?.handle) {
+      channelId = await resolveHandleToId(extracted.handle);
+    }
+
     if (!channelId) {
-      if (channelUrl.includes('/channel/')) {
-        channelId = channelUrl.split('/channel/')[1].split(/[/?]/)[0];
-      } else if (raw.includes('@')) {
-        const handle = raw.split('@')[1].split(/[/?#]/)[0];
-        try {
-          const search = await fetchWithKeys(k =>
-            `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${handle}&key=${k}`
-          );
-          channelId = search.items?.[0]?.snippet?.channelId || '';
-        } catch (e) {
-          console.error(`❌ ID-lookup error for ${raw}:`, e.message);
-          continue;
-        }
+      console.warn(`⚠️ Could not determine channelId for record id=${id}`);
+      continue;
+    }
+
+    // 3) fetch stats + uploads playlist
+    let info;
+    try {
+      info = await fetchWithRotation(key =>
+        `https://www.googleapis.com/youtube/v3/channels?` +
+        `part=snippet,contentDetails,statistics&id=${channelId}&key=${key}`
+      );
+    } catch (e) {
+      console.warn(`⚠️ Skipping ${id} – stats fetch failed:`, e.message);
+      continue;
+    }
+    const item = info.items?.[0];
+    if (!item) {
+      console.warn(`⚠️ No channel data for ${channelId}`);
+      continue;
+    }
+
+    const { snippet, statistics, contentDetails } = item;
+    const uploadsId = contentDetails?.relatedPlaylists?.uploads;
+
+    // 4) fetch last video date
+    let lastVideoAt = null;
+    if (uploadsId) {
+      try {
+        const upl = await fetchWithRotation(key =>
+          `https://www.googleapis.com/youtube/v3/playlistItems?`+
+          `part=snippet&maxResults=1&playlistId=${uploadsId}&key=${key}`
+        );
+        lastVideoAt = upl.items?.[0]?.snippet?.publishedAt || null;
+      } catch (e) {
+        console.warn(`⚠️ Could not fetch last-video for ${channelId}:`, e.message);
       }
     }
-    if (!channelId) {
-      console.error(`❌ No channelId for ${raw}, skipping`);
-      continue;
-    }
 
-    // 3) fetch snippet, statistics, contentDetails
-    let stats, uploadsPlaylist, snippet;
-    try {
-      const js = await fetchWithKeys(k =>
-        `https://www.googleapis.com/youtube/v3/channels?` +
-        `part=snippet,statistics,contentDetails&id=${channelId}&key=${k}`
-      );
-      const itm = js.items?.[0];
-      if (!itm) throw new Error('no items returned');
-      stats = itm.statistics;
-      uploadsPlaylist = itm.contentDetails.relatedPlaylists.uploads;
-      snippet = itm.snippet;
-    } catch (e) {
-      console.error(`❌ Channel data error for ${channelId}:`, e.message);
-      continue;
-    }
-
-    // 4) update channels table
+    // 5) update the channels table
     const upd = {
-      channel_url:    channelUrl,
-      channel_name:   snippet.title,
-      thumbnail_url:  snippet.thumbnails.default.url
+      channel_url:   channel_handle.trim(),
+      channel_name:  snippet.title,
+      thumbnail_url: snippet.thumbnails.default.url,
+      override_id:   channelId
     };
-    const { error: upErr } = await supabase
+    const { error: updErr } = await supabase
       .from('channels')
       .update(upd)
       .eq('id', id);
-    if (upErr) console.error(`❌ channels.update(${id}) failed:`, upErr);
 
-    // 5) fetch last‐video date
-    let lastVideoAt = null;
-    try {
-      const pl = await fetchWithKeys(k =>
-        `https://www.googleapis.com/youtube/v3/playlistItems?` +
-        `part=snippet&maxResults=1&playlistId=${uploadsPlaylist}&key=${k}`
-      );
-      if (pl.items?.[0]?.snippet?.publishedAt) {
-        lastVideoAt = pl.items[0].snippet.publishedAt;
-      }
-    } catch (e) {
-      console.error(`❌ playlistItems error for ${channelId}:`, e.message);
+    if (updErr) {
+      console.warn(`⚠️ channels.update failed for id=${id}:`, updErr);
+    } else {
+      console.log(`✅ [channels.${id}] updated`);
     }
 
-    // 6) insert into channel_metrics
-    const row = {
-      channel_id:    id,
-      fetched_at:    new Date().toISOString(),
-      videos:        parseInt(stats.videoCount,10) || 0,
-      subscribers:   parseInt(stats.subscriberCount,10) || 0,
-      views:         parseInt(stats.viewCount,10) || 0,
+    // 6) insert a metric snapshot
+    const metric = {
+      channel_id:   id,                       // FK to channels.id
+      subscribers:  Number(statistics.subscriberCount)||0,
+      views:        Number(statistics.viewCount)||0,
+      videos:       Number(statistics.videoCount)||0,
       last_video_at: lastVideoAt
     };
     const { error: insErr } = await supabase
       .from('channel_metrics')
-      .insert(row);
-    if (insErr) {
-      console.error(`❌ channel_metrics.insert for ${id} failed:`, insErr);
-    } else {
-      console.log(`✅ metrics inserted for ${channelId}`);
-    }
+      .insert(metric);
 
-    // 7) rate-limit before next channel
-    await sleep(1_000);
+    if (insErr) {
+      console.warn(`⚠️ channel_metrics.insert failed for id=${id}:`, insErr);
+    } else {
+      console.log(`✅ [metrics.${id}] snapshot inserted`);
+    }
   }
 
-  console.log('🏁 update.js completed');
+  console.log('🏁 All done');
 }
 
-main().catch(e=>{
-  console.error('🔥 fatal error:', e);
+main().catch(err => {
+  console.error('❌ Fatal error:', err.message);
   process.exit(1);
 });

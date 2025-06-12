@@ -16,25 +16,24 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || YT_API_KEYS.length === 0) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-async function checkSchema() {
-  console.log('⏳ Checking channels table schema...');
-  const { data, error } = await supabase
-    .from('information_schema.columns')
-    .select('column_name, data_type, is_nullable')
-    .eq('table_name', 'channels')
-    .in('column_name', ['channel_url', 'channel_name', 'thumbnail_url', 'override_id']);
+async function testColumns() {
+  console.log('⏳ Testing channels table columns...');
+  const testPayload = {
+    channel_url: 'test',
+    channel_name: 'test',
+    thumbnail_url: 'test',
+    override_id: 'test'
+  };
+  const { error } = await supabase
+    .from('channels')
+    .update(testPayload)
+    .eq('id', -1); // Use an ID that won't match to avoid actual updates
   if (error) {
-    console.error('❌ Failed to check schema:', JSON.stringify(error, null, 2));
+    console.error('❌ Column test failed. Possible missing columns or permissions issue:', JSON.stringify(error, null, 2));
+    console.error('Please ensure the channels table has columns: channel_url, channel_name, thumbnail_url, override_id');
     process.exit(1);
   }
-  console.log('DEBUG: channels table schema:', JSON.stringify(data, null, 2));
-  const requiredColumns = ['channel_url', 'channel_name', 'thumbnail_url', 'override_id'];
-  const missingColumns = requiredColumns.filter(col => !data.some(row => row.column_name === col));
-  if (missingColumns.length > 0) {
-    console.error(`❌ Missing required columns in channels table: ${missingColumns.join(', ')}`);
-    process.exit(1);
-  }
-  console.log('✅ Schema check passed');
+  console.log('✅ Column test passed: Required columns appear to exist');
 }
 
 async function fetchWithRotation(urlBuilder) {
@@ -88,8 +87,8 @@ async function resolveHandleToId(handle) {
 }
 
 async function main() {
-  // Check schema first
-  await checkSchema();
+  // Test columns before processing
+  await testColumns();
 
   // Load all channels
   console.log('⏳ Fetching channels...');
@@ -210,4 +209,3 @@ async function main() {
 main().catch(err => {
   console.error('❌ Fatal error:', JSON.stringify(err, null, 2));
   process.exit(1);
-});

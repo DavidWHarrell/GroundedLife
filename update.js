@@ -1,6 +1,6 @@
 // update.js
-const fetch = require('node-fetch');
-const { createClient } = require('@supabase/supabase-js');
+import fetch from 'node-fetch';
+import { createClient } from '@supabase/supabase-js';
 
 // ─────────────────────────────────────────────────────────────────
 // ENV & CLIENT SETUP
@@ -29,11 +29,10 @@ if (!ytKeys.length) {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // ─────────────────────────────────────────────────────────────────
-// Helper: try each YT key until one works (or all fail)
+// Helper: try each YouTube key until one works (or all fail)
 // ─────────────────────────────────────────────────────────────────
 async function fetchWithKeys(urlBuilder) {
-  for (let i = 0; i < ytKeys.length; i++) {
-    const key = ytKeys[i];
+  for (const key of ytKeys) {
     const url = urlBuilder(key);
     try {
       const res = await fetch(url);
@@ -50,7 +49,6 @@ async function fetchWithKeys(urlBuilder) {
       return JSON.parse(txt);
     } catch (err) {
       console.warn(`⚠️ Error for key ${key}: ${err.message}`);
-      // try next
       await sleep(100);
     }
   }
@@ -86,9 +84,7 @@ async function main() {
         const search = await fetchWithKeys(k =>
           `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(handle)}&key=${k}`
         );
-        if (search.items?.length) {
-          ytId = search.items[0].snippet.channelId;
-        }
+        if (search.items?.length) ytId = search.items[0].snippet.channelId;
       } catch (e) {
         console.error(`❌ [channels.${id}] handle lookup failed: ${e.message}`);
       }
@@ -139,9 +135,7 @@ async function main() {
       const upl = await fetchWithKeys(k =>
         `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=1&playlistId=${pl}&key=${k}`
       );
-      if (upl.items?.length) {
-        lastVideoAt = upl.items[0].snippet.publishedAt;
-      }
+      if (upl.items?.length) lastVideoAt = upl.items[0].snippet.publishedAt;
     } catch (e) {
       console.warn(`❌ [channels.${id}] playlist fetch error: ${e.message}`);
     }
@@ -165,7 +159,6 @@ async function main() {
       console.log(`✅ [metrics.${id}] row inserted`);
     }
 
-    // small pause
     await sleep(200);
   }
 

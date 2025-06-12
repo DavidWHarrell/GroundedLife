@@ -38,9 +38,8 @@ async function fetchWithKeys(urlBuilder) {
       const res = await fetch(url);
       const txt = await res.text();
       if (!res.ok) {
-        // treat 403/400 as "quota or limit" and move on
         if (res.status === 403 || res.status === 400) {
-          console.warn(`⚠️ Quota/API error with key ${key} → ${res.status}, trying next`);
+          console.warn(`⚠️ YouTube API error with key ${key} → ${res.status}, trying next`);
           await sleep(100);
           continue;
         }
@@ -59,11 +58,10 @@ async function fetchWithKeys(urlBuilder) {
 // Main runner
 // ─────────────────────────────────────────────────────────────────
 async function main() {
-  // 1) load your channel rows
+  // 1) load **all** channels (no `active` filter)
   const { data: channels, error: readErr } = await supabase
     .from('channels')
-    .select('id,channel_handle')
-    .eq('active', true);
+    .select('id, channel_handle');
 
   if (readErr) {
     console.error('❌ Supabase read channels failed:', readErr);
@@ -109,7 +107,7 @@ async function main() {
     }
     const { snippet, statistics, contentDetails } = info;
 
-    // 4) update your FIVE fields in channels
+    // 4) update your channel_* columns
     const updatePayload = {
       channel_url:   channel_handle,
       channel_id:    ytId,

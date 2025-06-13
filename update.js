@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
 
@@ -18,22 +19,24 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 async function testColumns() {
   console.log('⏳ Testing channels table columns...');
-  const testPayload = {
-    channel_url: 'test',
-    channel_name: 'test',
-    thumbnail_url: 'test',
-    override_id: 'test'
-  };
-  const { error } = await supabase
-    .from('channels')
-    .update(testPayload)
-    .eq('id', -1); // Use an ID that won't match to avoid actual updates
+  const requiredColumns = ['channel_url', 'channel_name', 'thumbnail_url', 'override_id'];
+  const { data, error } = await supabase
+    .rpc('get_table_columns', { table_name: 'channels' });
   if (error) {
-    console.error('❌ Column test failed. Possible missing columns or permissions issue:', JSON.stringify(error, null, 2));
+    console.error('❌ Failed to fetch table columns:', JSON.stringify(error, null, 2));
     console.error('Please ensure the channels table has columns: channel_url, channel_name, thumbnail_url, override_id');
     process.exit(1);
   }
-  console.log('✅ Column test passed: Required columns appear to exist');
+  const existingColumns = data.map(row => row.column_name);
+  console.log('DEBUG: Existing columns:', existingColumns);
+  const missingColumns = requiredColumns.filter(col => !existingColumns.includes(col));
+  if (missingColumns.length > 0) {
+    console.error(`❌ Missing columns in channels table: ${missingColumns.join(', ')}`);
+    console.error('Please add the missing columns using the Supabase SQL Editor with:');
+    console.error(`ALTER TABLE channels ${missingColumns.map(col => `ADD COLUMN IF NOT EXISTS ${col} text`).join(', ')};`);
+    process.exit(1);
+  }
+  console.log('✅ Column test passed: Required columns exist');
 }
 
 async function fetchWithRotation(urlBuilder) {

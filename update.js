@@ -209,3 +209,4 @@ async function main() {
 main().catch(err => {
   console.error('❌ Fatal error:', JSON.stringify(err, null, 2));
   process.exit(1);
+});

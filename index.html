@@ -1,104 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Grounded Life Channel Submission</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 2rem; }
-    form { max-width: 400px; margin: auto; }
-    label { display: block; margin-top: 1rem; }
-    input, button { width: 100%; padding: 0.5rem; margin-top: 0.25rem; }
-    .error { color: #c00; }
-    .success { color: #080; }
-  </style>
+  <meta charset="UTF-8">
+  <title>GroundedLife</title>
 </head>
 <body>
-  <h1>Grounded Life Channel Submission</h1>
-  <form id="channelForm">
-    <label>
-      Friend Name
-      <input name="friendName" type="text" placeholder="e.g. David and Sarah" required>
-    </label>
-    <label>
-      Channel Handle (<code>@channelname</code>)
-      <input name="channelHandle" type="text" placeholder="@YourChannel" required>
-    </label>
-    <label>
-      Form Password
-      <input name="formPassword" type="password" placeholder="Enter password" required>
-    </label>
-    <button type="submit">Submit</button>
+  <h1>GroundedLife</h1>
+  <h2>Add a channel</h2>
+  <form id="channel-form">
+    <label for="friend-name">Friend Name:</label><br>
+    <input type="text" id="friend-name" name="friend_name" required><br>
+    <label for="channel-handle">Channel Handle (e.g., @ChannelName or YouTube URL):</label><br>
+    <input type="text" id="channel-handle" name="channel_handle" required><br><br>
+    <input type="submit" value="Submit">
   </form>
   <p id="message"></p>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>
-    // ── CONFIG ─────────────────────────────────────────────────────
-    const SUPABASE_URL      = 'https://bqpjljsjsssvjuztaupz.supabase.co'
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxcGpsanNqc3Nzdmp1enRhdXB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkxMzA1MjEsImV4cCI6MjA2NDcwNjUyMX0.ORAisnmGr8xr5cAemyMmbGrNuKbcdTIAxit8KVN-YzI'
-    const TABLE_NAME        = 'channels'
-    const FORM_PASSWORD     = '2025GroundedLife!'
-    // ────────────────────────────────────────────────────────────────
+    const supabaseUrl = 'https://bqpjljsjsssvjuztaupz.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxcGpsanNqc3Nzdmp1enRhdXB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1MDgzOTcsImV4cCI6MjA2NTA4NDM5N30.JSoiFcpKiYj_b5rapTl8jFIEDlTkSQGa85rpegivxKI';
+    const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const form = document.getElementById('channelForm')
-      const msg  = document.getElementById('message')
-
-      form.addEventListener('submit', async e => {
-        e.preventDefault()
-        msg.textContent = ''
-        msg.className = ''
-
-        const friend = form.elements['friendName'].value.trim()
-        const handle = form.elements['channelHandle'].value.trim()
-        const pass   = form.elements['formPassword'].value
-
-        if (pass !== FORM_PASSWORD) {
-          msg.textContent = '❌ Incorrect password.'
-          msg.className = 'error'
-          return
-        }
-        if (!friend || !handle.startsWith('@')) {
-          msg.textContent = '❌ Enter a name and a handle like @ChannelName.'
-          msg.className = 'error'
-          return
-        }
-
-        try {
-          const res = await fetch(
-            `${SUPABASE_URL}/rest/v1/${TABLE_NAME}`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify({
-                friend_name: friend,
-                channel_handle: handle
-              })
-            }
-          )
-
-          if (res.ok) {
-            msg.textContent = '✅ Submitted successfully!'
-            msg.className = 'success'
-            form.reset()
-          } else {
-            const err = await res.json().catch(()=>({message:res.statusText}))
-            console.error('Supabase error', err)
-            msg.textContent = '❌ Submission failed: ' + (err.message||res.statusText)
-            msg.className = 'error'
-          }
-        } catch (networkErr) {
-          console.error('Network error', networkErr)
-          msg.textContent = '❌ Network error. Check console.'
-          msg.className = 'error'
-        }
-      })
-    })
+    document.getElementById('channel-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const channel = {
+        friend_name: formData.get('friend_name'),
+        channel_handle: formData.get('channel_handle')
+      };
+      const message = document.getElementById('message');
+      if (!channel.friend_name || !channel.channel_handle) {
+        message.textContent = '❌ Enter a name and a valid channel handle.';
+        return;
+      }
+      try {
+        const { data, error } = await supabase.from('channels').insert([channel]);
+        if (error) throw new Error(`Supabase error: ${JSON.stringify(error, null, 2)}`);
+        message.textContent = 'Channel submitted successfully!';
+      } catch (error) {
+        console.error('Error details:', error);
+        message.textContent = `Error: ${error.message}`;
+      }
+    });
   </script>
 </body>
 </html>

@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
 

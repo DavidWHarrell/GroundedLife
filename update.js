@@ -1,214 +1,148 @@
+// update.js — Safe version with no Supabase relationship joins, JS-side filtering only
+
+import dotenv from 'dotenv';
+dotenv.config();
+
 import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const YT_API_KEYS = (process.env.YT_API_KEYS || '').split(',').map(k => k.trim());
+const API_KEYS = process.env.YT_API_KEYS.split(',');
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
 
-// Validate environment variables
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || YT_API_KEYS.length === 0) {
-  console.error('❌ Missing environment variables:');
-  console.error(`  SUPABASE_URL: ${SUPABASE_URL || 'undefined'}`);
-  console.error(`  SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY ? '[set]' : 'undefined'}`);
-  console.error(`  YT_API_KEYS: ${YT_API_KEYS.length > 0 ? '[set]' : 'undefined'}`);
-  process.exit(1);
-}
+async function logApiUsage(keyLabel, units = 1) {
+  const today = new Date().toISOString().split('T')[0];
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  const { data: existing, error: fetchError } = await supabase
+    .from('api_key_usage')
+    .select('count')
+    .eq('key_label', keyLabel)
+    .eq('date', today)
+    .single();
 
-async function testColumns() {
-  console.log('⏳ Testing channels table columns...');
-  const requiredColumns = ['channel_url', 'channel_name', 'thumbnail_url', 'override_id'];
-  const { data, error } = await supabase
-    .rpc('get_table_columns', { table_name: 'channels' });
+  const newCount = existing?.count ? existing.count + units : units;
+
+  const { error } = await supabase
+    .from('api_key_usage')
+    .upsert({
+      key_label: keyLabel,
+      date: today,
+      count: newCount,
+      last_used_at: new Date().toISOString()
+    }, {
+      onConflict: ['key_label', 'date']
+    });
+
   if (error) {
-    console.error('❌ Failed to fetch table columns:', JSON.stringify(error, null, 2));
-    console.error('Please ensure the channels table has columns: channel_url, channel_name, thumbnail_url, override_id');
-    process.exit(1);
+    console.error(`❌ Failed to log usage for ${keyLabel}:`, error.message);
   }
-  const existingColumns = data.map(row => row.column_name);
-  console.log('DEBUG: Existing columns:', existingColumns);
-  const missingColumns = requiredColumns.filter(col => !existingColumns.includes(col));
-  if (missingColumns.length > 0) {
-    console.error(`❌ Missing columns in channels table: ${missingColumns.join(', ')}`);
-    console.error('Please add the missing columns using the Supabase SQL Editor with:');
-    console.error(`ALTER TABLE channels ${missingColumns.map(col => `ADD COLUMN IF NOT EXISTS ${col} text`).join(', ')};`);
-    process.exit(1);
-  }
-  console.log('✅ Column test passed: Required columns exist');
 }
 
-async function fetchWithRotation(urlBuilder) {
-  for (let i = 0; i < YT_API_KEYS.length; i++) {
-    const key = YT_API_KEYS[i];
-    const url = urlBuilder(key);
+async function fetchWithKeyRotation(urlBuilder, cost = 1) {
+  for (let i = 0; i < API_KEYS.length; i++) {
+    const key = API_KEYS[i];
     try {
+      const url = urlBuilder(key);
       const res = await fetch(url);
-      if (res.status === 200) {
-        const data = await res.json();
-        console.log(`DEBUG: YouTube API response for key[${i}]:`, JSON.stringify(data, null, 2));
-        return data;
-      }
-      console.warn(`⚠️ YouTube API returned ${res.status} for key[${i}], will try next`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await logApiUsage(`KEY ${i + 1}`, cost);  // 💥 log cost per request
+      return await res.json();
     } catch (e) {
-      console.warn(`⚠️ YouTube fetch error with key[${i}]:`, e.message);
+      if (/quota|403|exceeded/.test(e.message)) {
+        console.warn(`⚠️ Quota hit for KEY ${i + 1}`);
+        continue;
+      }
+      throw e;
     }
   }
-  throw new Error('⚠️ All YouTube API keys exhausted or failing');
+  throw new Error('❌ All API keys exhausted.');
 }
 
-function extractChannelIdFromUrl(url) {
-  url = (url || '').trim();
-  console.log(`DEBUG: Extracting channel ID from URL: ${url}`);
-  if (url.includes('/channel/')) {
-    const channelId = url.split('/channel/')[1].split(/[?\/#]/)[0];
-    console.log(`DEBUG: Extracted channelId: ${channelId}`);
-    return channelId;
-  }
-  const m = url.match(/@([A-Za-z0-9_]+)/);
-  if (m) {
-    console.log(`DEBUG: Extracted handle: ${m[1]}`);
-    return { handle: m[1] };
-  }
-  console.log('DEBUG: No channelId or handle found');
-  return null;
-}
-
-async function resolveHandleToId(handle) {
-  console.log(`DEBUG: Resolving handle: ${handle}`);
-  const data = await fetchWithRotation(key =>
-    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${handle}&key=${key}`
-  );
-  if (data.items && data.items[0]?.snippet?.channelId) {
-    const channelId = data.items[0].snippet.channelId;
-    console.log(`DEBUG: Resolved handle ${handle} to channelId: ${channelId}`);
-    return channelId;
-  }
-  console.warn(`⚠️ No channelId found for handle: ${handle}`);
-  return null;
-}
-
-async function main() {
-  // Test columns before processing
-  await testColumns();
-
-  // Load all channels
-  console.log('⏳ Fetching channels...');
-  const { data: rows, error: readErr } = await supabase
+async function getAllChannels() {
+  const { data, error } = await supabase
     .from('channels')
-    .select('id,channel_handle');
-  if (readErr) {
-    console.error('❌ Supabase read channels failed:', JSON.stringify(readErr, null, 2));
-    process.exit(1);
-  }
-  console.log(`✅ Found ${rows.length} channels to process`);
+    .select('*')
+    .is('unreachable', null);
 
-  let skippedCount = 0;
-  for (const row of rows) {
-    const { id, channel_handle } = row;
-    console.log(`\n--- Processing channel id=${id} ---`);
-    console.log(`DEBUG: channel_handle: ${channel_handle || 'NULL'}`);
-    let channelId = null;
-
-    // Extract or resolve channelId
-    const extracted = extractChannelIdFromUrl(channel_handle);
-    if (typeof extracted === 'string') {
-      channelId = extracted;
-    } else if (extracted?.handle) {
-      channelId = await resolveHandleToId(extracted.handle);
-    }
-
-    if (!channelId) {
-      console.warn(`⚠️ Could not determine channelId for id=${id}`);
-      skippedCount++;
-      continue;
-    }
-    console.log(`DEBUG: channelId: ${channelId}`);
-
-    // Fetch stats + uploads playlist
-    let info;
-    try {
-      info = await fetchWithRotation(key =>
-        `https://www.googleapis.com/youtube/v3/channels?` +
-        `part=snippet,contentDetails,statistics&id=${channelId}&key=${key}`
-      );
-    } catch (e) {
-      console.warn(`⚠️ Skipping ${id} – stats fetch failed:`, e.message);
-      skippedCount++;
-      continue;
-    }
-    const item = info.items?.[0];
-    if (!item) {
-      console.warn(`⚠️ No channel data for ${channelId}`);
-      skippedCount++;
-      continue;
-    }
-
-    const { snippet, statistics, contentDetails } = item;
-    console.log(`DEBUG: snippet.title: ${snippet?.title || 'NULL'}`);
-    console.log(`DEBUG: thumbnail_url: ${snippet?.thumbnails?.default?.url || 'NULL'}`);
-
-    const uploadsId = contentDetails?.relatedPlaylists?.uploads;
-
-    // Fetch last video date
-    let lastVideoAt = null;
-    if (uploadsId) {
-      try {
-        const upl = await fetchWithRotation(key =>
-          `https://www.googleapis.com/youtube/v3/playlistItems?` +
-          `part=snippet&maxResults=1&playlistId=${uploadsId}&key=${key}`
-        );
-        lastVideoAt = upl.items?.[0]?.snippet?.publishedAt || null;
-        console.log(`DEBUG: lastVideoAt: ${lastVideoAt || 'NULL'}`);
-      } catch (e) {
-        console.warn(`⚠️ Could not fetch last-video for ${channelId}:`, e.message);
-      }
-    }
-
-    // Update channels table
-    const upd = {
-      channel_url: channel_handle ? channel_handle.trim() : null,
-      channel_name: snippet.title || null,
-      thumbnail_url: snippet.thumbnails?.default?.url || null,
-      override_id: channelId
-    };
-    console.log(`DEBUG: Update payload for id=${id}:`, JSON.stringify(upd, null, 2));
-
-    const { error: updErr } = await supabase
-      .from('channels')
-      .update(upd)
-      .eq('id', id);
-
-    if (updErr) {
-      console.warn(`⚠️ channels.update failed for id=${id}:`, JSON.stringify(updErr, null, 2));
-    } else {
-      console.log(`✅ [channels.${id}] updated successfully`);
-    }
-
-    // Insert metric snapshot
-    const metric = {
-      channel_id: id,
-      subscribers: Number(statistics.subscriberCount) || 0,
-      views: Number(statistics.viewCount) || 0,
-      videos: Number(statistics.videoCount) || 0,
-      last_video_at: lastVideoAt
-    };
-    console.log(`DEBUG: Metric payload for id=${id}:`, JSON.stringify(metric, null, 2));
-    const { error: insErr } = await supabase
-      .from('channel_metrics')
-      .insert(metric);
-
-    if (insErr) {
-      console.warn(`⚠️ channel_metrics.insert failed for id=${id}:`, JSON.stringify(insErr, null, 2));
-    } else {
-      console.log(`✅ [metrics.${id}] snapshot inserted`);
-    }
-  }
-
-  console.log(`🏁 Processed ${rows.length - skippedCount} channels, skipped ${skippedCount}`);
+  if (error) throw new Error(`Failed to load channels: ${error.message}`);
+  return data;
 }
 
-main().catch(err => {
-  console.error('❌ Fatal error:', JSON.stringify(err, null, 2));
-  process.exit(1);
-});
+async function getLastFetched(channelId) {
+  const { data, error } = await supabase
+    .from('channel_metrics')
+    .select('fetched_at')
+    .eq('channel_id', channelId)
+    .order('fetched_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  return error ? null : data?.fetched_at;
+}
+
+async function saveMetric(channel, stats, lastVideoDate) {
+  const { error } = await supabase.from('channel_metrics').insert({
+    channel_id: channel.id,
+    videos: parseInt(stats.videoCount || '0'),
+    subscribers: parseInt(stats.subscriberCount || '0'),
+    views: parseInt(stats.viewCount || '0'),
+    last_video_at: lastVideoDate || null,
+    fetched_at: new Date().toISOString()
+  });
+  if (error) console.error(`❌ Failed to save metric for ${channel.channel_name}:`, error.message);
+}
+
+async function getLastVideoDate(channelId) {
+  const details = await fetchWithKeyRotation(k => `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${k}`);
+  const uploads = details?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+  if (!uploads) return null;
+  const pl = await fetchWithKeyRotation(k => `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=1&playlistId=${uploads}&key=${k}`);
+  return pl?.items?.[0]?.snippet?.publishedAt || null;
+}
+
+async function markUnreachable(channelId) {
+  await supabase.from('channels').update({ unreachable: true }).eq('id', channelId);
+}
+
+async function update() {
+  const channels = await getAllChannels();
+  console.log(`🔍 Found ${channels.length} total channels...`);
+
+  const recentChannels = [];
+  const cutoff = Date.now() - 24 * 3600000;
+
+  for (const ch of channels) {
+    const lastFetched = await getLastFetched(ch.id);
+    if (!lastFetched || new Date(lastFetched).getTime() < cutoff) {
+      recentChannels.push(ch);
+    }
+  }
+
+  console.log(`🚀 Starting update for ${recentChannels.length} channels...`);
+
+  let updated = 0;
+  for (const channel of recentChannels) {
+    try {
+      const statsRes = await fetchWithKeyRotation(k =>
+        `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channel.channel_id}&key=${k}`
+      );
+      const stats = statsRes?.items?.[0]?.statistics;
+      if (!stats) throw new Error('Missing stats');
+
+      const lastVideoAt = await getLastVideoDate(channel.channel_id);
+      await saveMetric(channel, stats, lastVideoAt);
+
+      console.log(`✅ Updated: ${channel.channel_name}`);
+      updated++;
+    } catch (e) {
+      console.warn(`❌ Skipped ${channel.channel_name || channel.channel_id}: ${e.message}`);
+      await markUnreachable(channel.id);
+    }
+  }
+
+  console.log(`🏁 Finished. Updated: ${updated}, Skipped: ${recentChannels.length - updated}`);
+}
+
+update();

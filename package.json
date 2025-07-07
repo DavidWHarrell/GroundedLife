@@ -1,11 +1,7 @@
 {
-  "dependencies": {
-    "@supabase/supabase-js": "^2.50.0",
-    "node-fetch": "^2.7.0"
-  },
   "name": "groundedlife",
   "version": "1.0.0",
- "type": "module",
+  "type": "module",
   "description": "<img src=\"https://octodex.github.com/images/Professortocat_v2.png\" align=\"right\" height=\"200px\" />",
   "main": "update.js",
   "scripts": {
@@ -21,5 +17,11 @@
   "bugs": {
     "url": "https://github.com/DavidWHarrell/GroundedLife/issues"
   },
-  "homepage": "https://github.com/DavidWHarrell/GroundedLife#readme"
+  "homepage": "https://github.com/DavidWHarrell/GroundedLife#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.2",
+    "csv-parser": "^3.2.0",
+    "dotenv": "^16.6.1",
+    "node-fetch": "^2.7.0"
+  }
 }

@@ -1,0 +1,316 @@
+
+📅 Update Log: 2025-07-10T14:56:44.734Z
+Found 62 channels...
+
+➡️ GETTY OFFICIAL CHANNEL  (@GettyOfficial
+)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: GETTY OFFICIAL CHANNEL  (subs: 60, views: 331, videos: 1)
+
+➡️ David and Sarah Travel (https://www.youtube.com/channel/UCnVpzeugJiFLbOyFRGd9vXg)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: David and Sarah Travel (subs: 70, views: 587, videos: 10)
+
+➡️ Kate and Randy Travel (@kateandrandytravel)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Kate and Randy Travel (subs: 236, views: 58048, videos: 128)
+
+➡️ Poverty to Paradise (@PovertyToParadise)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Poverty to Paradise (subs: 92500, views: 6303484, videos: 264)
+
+➡️ Sharee By Sea (@Shareebysea)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Sharee By Sea (subs: 2110, views: 175177, videos: 86)
+
+➡️ Seniors At Sea (@SeniorsAtSea)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Seniors At Sea (subs: 203, views: 22395, videos: 39)
+
+➡️ Adventures of Dave and Nikki (@AdventuresofDaveandNikki)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Adventures of Dave and Nikki (subs: 216, views: 13258, videos: 13)
+
+➡️ Smart Tech For Any Age (@SmartTechForAnyAge)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Smart Tech For Any Age (subs: 208, views: 3112, videos: 14)
+
+➡️ Travel with Rick and Angie  (@TravelwithRickandAngie)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Travel with Rick and Angie  (subs: 91, views: 7445, videos: 19)
+
+➡️ Why Don't We Go (@whydontwego)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Why Don't We Go (subs: 19, views: 1616, videos: 10)
+
+➡️ Fareeda’s Beautiful Life (@fareedamariam)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Fareeda’s Beautiful Life (subs: 1970, views: 67198, videos: 78)
+
+➡️ GenX Quench (@GenXQuench)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: GenX Quench (subs: 1060, views: 26778, videos: 30)
+
+➡️ Mondays with Mom (@MondaysWithMom)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Mondays with Mom (subs: 29, views: 230, videos: 5)
+
+➡️ Away We Go Traveling (@awaywegotraveling)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Away We Go Traveling (subs: 128, views: 3559, videos: 24)
+
+➡️ Vets on Vacay (@VetsonVacay)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Vets on Vacay (subs: 84, views: 5142, videos: 14)
+
+➡️ Philly And The Brain - Explain It (@PhillyAndTheBrain)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Philly And The Brain - Explain It (subs: 1210, views: 39831, videos: 72)
+
+➡️ Born To Wander (@StartingOverAt37yo)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Born To Wander (subs: 11, views: 1340, videos: 13)
+
+➡️ We Stay We Eat (@WeStayWeEat)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: We Stay We Eat (subs: 12, views: 993, videos: 10)
+
+➡️ Sail Away with Bruce and Eileen (@sailawaywithbruceandeileen)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Sail Away with Bruce and Eileen (subs: 79, views: 5955, videos: 11)
+
+➡️ Mostly Solo Travel (@MostlySoloTravel)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Mostly Solo Travel (subs: 485, views: 206394, videos: 315)
+
+➡️ travellingWests (@travellingwests)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: travellingWests (subs: 1050, views: 122937, videos: 123)
+
+➡️ U 2 CAN CRUISE (@U2CANCRUISE)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: U 2 CAN CRUISE (subs: 60, views: 21998, videos: 43)
+
+➡️ Midlife Muscle and Mindset (@MidlifeMuscleandMindset)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Midlife Muscle and Mindset (subs: 63, views: 7416, videos: 53)
+
+➡️ Cruise Port Captain (@CruisePortCaptain)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Cruise Port Captain (subs: 72, views: 6696, videos: 27)
+
+➡️ Resilient Travelers (@POTZZZTravel)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Resilient Travelers (subs: 25, views: 1249, videos: 30)
+
+➡️ Grateful Living Cruises (@GratefulLivingCruises)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Grateful Living Cruises (subs: 94, views: 23654, videos: 61)
+
+➡️ Rachel Meyer (@Rachellmeyer)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Rachel Meyer (subs: 5, views: 130, videos: 5)
+
+➡️ Travis & Angel (@travisandangel)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Travis & Angel (subs: 23, views: 14851, videos: 34)
+
+➡️ Stacey's Simple Meals (@staceyssimplemeals)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Stacey's Simple Meals (subs: 15400, views: 465817, videos: 62)
+
+➡️ Rachel Thomas Life (@RachelThomasLife)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Rachel Thomas Life (subs: 4280, views: 343435, videos: 117)
+
+➡️ FunFacts (@30yearMiracle)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: FunFacts (subs: 80, views: 45392, videos: 77)
+
+➡️ Healing With Hope And Encouragement (@HealingWithHopeAndEncourage)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Healing With Hope And Encouragement (subs: 18, views: 170, videos: 19)
+
+➡️ Preparing For Retirement (@preparingforretirement)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Retire Abroad Finance (Preparing For Retirement) (subs: 175, views: 16536, videos: 74)
+
+➡️ Cory and Wallace (@CoryandWallace)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Cory and Wallace (subs: 517, views: 81595, videos: 120)
+
+➡️ Almost Retired Abroad (@AlmostRetiredAbroad)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Almost Retired Abroad (subs: 4010, views: 130564, videos: 12)
+
+➡️ Never Too Blank (@nevertooblank)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Never Too Blank (subs: 50200, views: 320693, videos: 68)
+
+➡️ Robert in NYC (@ManhattanRats)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Robert in NYC (subs: 38, views: 2424, videos: 79)
+
+➡️ Self-Coaching for Skeptics (@Self-CoachingForSkeptics)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: SELF - Topic (subs: 5900, views: 4449378, videos: 92)
+
+➡️ Retired Life Mexico (@RetiredLifeMexico)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Retired Life Mexico (subs: 4630, views: 287236, videos: 70)
+
+➡️ SicilianLife (@SicilianLife)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: SicilianLife (subs: 4080, views: 400268, videos: 69)
+
+➡️ Downsize to Upsize (@downsizetoupsize)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Downsize to Upsize (subs: 5550, views: 321318, videos: 58)
+
+➡️ My Wander Years - As A Digital Nomad (@MyWanderYearsDigtalNomad)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: My Wander Years - As A Digital Nomad (subs: 14, views: 83, videos: 4)
+
+➡️ Next Act Retirement and Travel (@NextActRetirementandTravel)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Next Act Retirement and Travel (subs: 101, views: 5131, videos: 38)
+
+➡️ Grand Voyages (@grandvoyagestv)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Grand Voyages (subs: 106, views: 17952, videos: 6)
+
+➡️ The Traveling Hatter (@TheTravelingHatter)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: The Traveling Hatter (subs: 106, views: 9148, videos: 13)
+
+➡️ Arjun Raj (@sunrisesojourners)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Arjun Raj (subs: 571, views: 93148, videos: 12)
+
+➡️ Nadine's Coastal Kitchen (@nadines_coastal_kitchen)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Nadine's Coastal Kitchen (subs: 33, views: 1739, videos: 9)
+
+➡️ Greenway Electric (@greenwayelectric)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Greenway Electric (subs: 742, views: 124623, videos: 96)
+
+➡️ Crash Course Travel (@CrashCourseTravel)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Crash Course Travel (subs: 1070, views: 75922, videos: 28)
+
+➡️ Crash Course Hotels (@CrashCourseHotels)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Crash Course Hotels (subs: 105, views: 12399, videos: 24)
+
+➡️ Tyke and Tina Adventures (@TykeandTinaAdventures)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Tyke and Tina Adventures (subs: 373, views: 34893, videos: 58)
+
+➡️ Mike Norris Fit - Don't Let The Old Man In (@mikenorrisfit)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Mike Norris Fit - Don't Let The Old Man In (subs: 1100, views: 66350, videos: 162)
+
+➡️ Stitching With My Kitties (@saltystitcherdesigns)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Stitching With My Kitties (subs: 405, views: 7806, videos: 38)
+
+➡️ Hollett's At Sea (@HollettsAtSea)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Hollett's At Sea (subs: 34, views: 20640, videos: 26)
+
+➡️ Anything Is Possible Travel (@AnythingIsPossibleTravel)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Anything Is Possible Travel (subs: 13, views: 299, videos: 11)
+
+➡️ Twists N Travels (@TwistsNTravels)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Twists N Travels (subs: 122, views: 52963, videos: 194)
+
+➡️ Three Little Potters (@threelittlepotters)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Three Little Potters (subs: 4020, views: 273432, videos: 144)
+
+➡️ Retired Nomad Adventures (@RetiredNomadAdventures)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Retired Nomad Adventures (subs: 4160, views: 221499, videos: 51)
+
+➡️ Travel Artistry By VR (Vanesa Ruiz) (@TRAVELARTISTRYBYVRONTHEMOV-h8m)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Travel Artistry By VR (Vanesa Ruiz) (subs: 3, views: 47, videos: 7)
+
+➡️ Tanya and Martin Travels (@everywherewedreamedofgoing)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Tanya and Martin Travels (subs: 203, views: 19712, videos: 32)
+
+➡️ Points And Ports With Pam (@pointsandports)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: Points And Ports With Pam (subs: 12, views: 678, videos: 17)
+
+➡️ How2Nomad (@how2nomad)
+   🔹 Fetch metadata (key 1): OK
+   🔹 Fetch uploads (key 1): OK
+✅ Done: How2Nomad (subs: 170, views: 2419, videos: 9)
+
+📊 API usage: 124

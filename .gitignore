@@ -36,3 +36,12 @@
 ehthumbs.db
 Thumbs.db
 
+
+# Project-specific ignores
+node_modules/
+.env
+api-usage.log
+.next/
+out/
+supabase/.temp/
+.supabase/

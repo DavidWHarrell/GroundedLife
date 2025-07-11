@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// update.js - ES Module with detailed debug instrumentation and incremental API usage tracking
+// update.js - ESM with detailed debug instrumentation for Supabase channel processing and API usage
 import 'dotenv/config';
 import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
@@ -13,18 +13,16 @@ function log(msg) {
   try {
     fs.appendFileSync(LOG_FILE, line + '\n');
   } catch (err) {
-    console.error(`[${new Date().toISOString()}] Failed to write log file: ${err.message}`);
+    console.error(`[${ts}] Failed to write log file: ${err.message}`);
   }
 }
 
-// Startup logs
 log('=== UPDATE START ===');
 log(`ENV SUPABASE_URL set: ${!!process.env.SUPABASE_URL}`);
 log(`ENV SUPABASE_SERVICE_KEY set: ${!!process.env.SUPABASE_SERVICE_KEY}`);
-const keys = process.env.YT_API_KEYS ? process.env.YT_API_KEYS.split(',') : [];
-log(`ENV YT_API_KEYS count: ${keys.length}`);
+log(`ENV YT_API_KEYS count: ${process.env.YT_API_KEYS ? process.env.YT_API_KEYS.split(',').length : 0}`);
 
-// Validate environment
+// -- Validate environment --
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
@@ -32,24 +30,25 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   process.exit(1);
 }
 
-// Initialize Supabase Client
+// -- Initialize Supabase Client --
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-(async () => {
-  // Test connectivity
+// -- Main Update Routine --
+async function update() {
+  // 1. Test connectivity
   try {
     const { data: testData, error: testErr } = await supabase
       .from('channels')
-      .select('id')
+      .select('id, unreachable')
       .limit(1);
     if (testErr) log(`Test SELECT error: ${testErr.message}`);
-    else log(`Test SELECT succeeded`);
+    else log(`Test SELECT sample: ${JSON.stringify(testData)}`);
   } catch (err) {
     log(`Fatal error during test SELECT: ${err.message}`);
-    process.exit(1);
+    return;
   }
 
-  // Fetch channels
+  // 2. Fetch all channels
   let allChannels;
   try {
     const { data, error } = await supabase
@@ -59,51 +58,44 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     allChannels = data;
   } catch (err) {
     log(`❌ Failed to fetch channels: ${err.message}`);
-    process.exit(1);
+    return;
   }
-  log(`Fetched channels: total = ${allChannels.length}`);
+  log(`Fetched channels: total rows = ${allChannels.length}`);
+  log(`Raw unreachable values: ${allChannels.map(c => c.unreachable).join(', ')}`);
 
-  // Filter unreachable
+  // 3. Filter out unreachable === true only
   const reachable = allChannels.filter(c => c.unreachable !== true);
-  log(`Processing channels: reachable = ${reachable.length}`);
+  log(`After filter (unreachable !== true): ${reachable.length} channels to process`);
 
-  // Count API calls for processing
+  // 4. Simulate processing each channel and count API calls
   let apiCalls = 0;
   for (const ch of reachable) {
     const handle = ch.override_id || ch.channel_handle;
-    log(`➡️ Processing id=${ch.id} handle=${handle}`);
-    // TODO: Replace below with real YouTube API calls
+    log(`➡️ Processing id=${ch.id} handle=${handle} unreachable=${ch.unreachable}`);
+    // TODO: Insert actual YouTube API calls here
     apiCalls += 1; // metadata call
     apiCalls += 1; // uploads call
   }
-  log(`Total API calls simulated: ${apiCalls}`);
 
-  // Increment usage in Supabase
-  const today = new Date().toISOString().split('T')[0];
+  log(`📊 Debugged total API calls counted: ${apiCalls}`);
+
+  // 5. Log usage back to Supabase
   try {
-    // Fetch existing count for today
-    const { data: usageData, error: fetchErr } = await supabase
-      .from('api_key_usage')
-      .select('count')
-      .eq('key_label', 'DEFAULT')
-      .eq('date', today)
-      .single();
-    if (fetchErr && fetchErr.code !== 'PGRST116') throw fetchErr;
-    const previousCount = usageData?.count || 0;
-    const newCount = previousCount + apiCalls;
-
-    // Upsert new total count
+    const today = new Date().toISOString().split('T')[0];
     const { error: upsertErr } = await supabase
       .from('api_key_usage')
       .upsert(
-        { key_label: 'DEFAULT', date: today, count: newCount, last_used_at: new Date().toISOString() },
+        { key_label: 'DEFAULT', date: today, count: apiCalls, last_used_at: new Date().toISOString() },
         { onConflict: ['key_label', 'date'] }
       );
     if (upsertErr) throw upsertErr;
-    log(`✅ Incremented API usage: previous=${previousCount}, added=${apiCalls}, total=${newCount}`);
+    log(`✅ Supabase logged API usage: count=${apiCalls}`);
   } catch (err) {
-    log(`❌ Failed to update usage: ${err.message}`);
+    log(`❌ Failed to log usage to Supabase: ${err.message}`);
   }
+}
 
-  log('=== UPDATE END ===');
-})();
+// Run and finalize
+update()
+  .catch(err => log(`Fatal error in update(): ${err.message}`))
+  .finally(() => log('=== UPDATE END ==='));

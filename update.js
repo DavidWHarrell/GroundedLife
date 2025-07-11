@@ -1,3 +1,4 @@
+// update.js
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
@@ -8,6 +9,7 @@ const supabase = createClient(
 );
 
 const API_KEYS = process.env.YT_API_KEYS?.split(',') || [];
+const API_KEY_LABEL = 'KEY 1'; // update if you add more later
 let apiUsageCount = 0;
 const LOG_FILE = 'api-usage.log';
 
@@ -40,10 +42,11 @@ async function logUsageToSupabase(label, count) {
 
 async function update() {
   log('=== UPDATE START ===');
-const { data: channels, error } = await supabase
-  .from('channels')
-  .select('*')
-  .or('unreachable.is.false,unreachable.is.null');
+
+  const { data: channels, error } = await supabase
+    .from('channels')
+    .select('*')
+    .eq('unreachable', false);
 
   if (error) {
     log(`❌ Failed to fetch channels: ${error.message}`);
@@ -53,24 +56,22 @@ const { data: channels, error } = await supabase
   log(`Found ${channels.length} channels...`);
 
   for (const ch of channels) {
-    const channelName = ch.channel_name || ch.channel_handle || 'Unknown';
-    log(`➡️ ${channelName}`);
+    const name = ch.channel_name || ch.channel_handle || 'Unnamed';
+    log(`➡️ ${name}`);
 
     try {
-      const key = API_KEYS[0]; // Only one key for now
+      // Replace this block with real API logic later
+      countApiUsage(); // Simulated metadata query
+      countApiUsage(); // Simulated uploads query
+      // End simulation
 
-      // Simulate YouTube API calls (real fetch code should go here)
-      countApiUsage(); // metadata
-      countApiUsage(); // uploads
-
-      // Simulate successful updates
-      log(`✅ Done: ${channelName}`);
+      log(`✅ Done: ${name}`);
     } catch (err) {
-      log(`❌ Error updating ${channelName}: ${err.message}`);
+      log(`❌ Error updating ${name}: ${err.message}`);
     }
   }
 
-  await logUsageToSupabase('KEY 1', apiUsageCount);
+  await logUsageToSupabase(API_KEY_LABEL, apiUsageCount);
   log(`📊 API usage: ${apiUsageCount}`);
   log('=== UPDATE END ===');
 }

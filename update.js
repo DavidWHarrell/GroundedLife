@@ -40,10 +40,10 @@ async function logUsageToSupabase(label, count) {
 
 async function update() {
   log('=== UPDATE START ===');
-  const { data: channels, error } = await supabase
-    .from('channels')
-    .select('*')
-    .eq('unreachable', false);
+const { data: channels, error } = await supabase
+  .from('channels')
+  .select('*')
+  .or('unreachable.is.false,unreachable.is.null');
 
   if (error) {
     log(`❌ Failed to fetch channels: ${error.message}`);
